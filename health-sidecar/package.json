@@ -1,0 +1,10 @@
+{
+  "name": "health-sidecar",
+  "version": "1.0.0",
+  "description": "Health-check sidecar for room-service",
+  "main": "monitor.js",
+  "type": "module",
+  "scripts": {
+    "start": "node monitor.js"
+  }
+}

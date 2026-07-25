@@ -1,0 +1,43 @@
+services:
+  room-service:
+    build: ./room-service
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  reservation-service:
+    build: ./reservation-service
+    ports:
+      - "3002:3002"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3002/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  health-sidecar:
+    build: ./health-sidecar
+    depends_on:
+      room-service:
+        condition: service_healthy
+    environment:
+      ROOM_HEALTH_URL: http://room-service:3001/health
+      CHECK_INTERVAL_MS: "10000"

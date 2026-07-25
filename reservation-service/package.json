@@ -1,0 +1,13 @@
+{
+  "name": "reservation-service",
+  "version": "1.0.0",
+  "description": "Study room reservation service",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
