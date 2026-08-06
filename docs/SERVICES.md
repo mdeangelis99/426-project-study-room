@@ -51,28 +51,48 @@ Its responsibilities include:
 
 ## Architecture Diagram
 
+Updated for Sprint 3: room service runs as two replicas behind Caddy, and Redis caches room lookups.
+
 ```text
-                         +----------------------+
-                         |        Client        |
-                         +----------+-----------+
-                                    |
-                    +---------------+---------------+
-                    |                               |
-                    v                               v
-          +-------------------+           +---------------------+
-          |   Room Service    |           | Reservation Service |
-          |                   |           |                     |
-          | GET /rooms        |           | GET /reservations   |
-          | GET /rooms/:id    |           | POST /reservations  |
-          +---------+---------+           +---------------------+
-                    |
-                    v
-          +-------------------+
-          | Logging Sidecar   |
-          |                   |
-          | Health checks and |
-          | service logging   |
-          +-------------------+
+                              +----------------------+
+                              |        Client        |
+                              +----------+-----------+
+                                         |
+                       +-----------------+-----------------+
+                       |                                   |
+                       v                                   v
+             +-------------------+               +---------------------+
+             |      Caddy        |               | Reservation Service |
+             |  (load balancer)  |               |                     |
+             |  localhost:3001   |               | GET /reservations   |
+             +---------+---------+               | POST /reservations  |
+                       |                         +---------------------+
+           +-----------+-----------+
+           |                       |
+           v                       v
+ +-------------------+   +-------------------+
+ | room-service-1    |   | room-service-2    |
+ | GET /rooms        |   | GET /rooms        |
+ | GET /rooms/:id    |   | GET /rooms/:id    |
+ | GET /rooms/search |   | GET /rooms/search |
+ +---------+---------+   +---------+---------+
+           |                       |
+           +-----------+-----------+
+                       |
+                       v
+             +-------------------+
+             |      Redis        |
+             |  room detail cache|
+             +-------------------+
+
+ room-service-1
+       |
+       v
+ +-------------------+
+ | Logging Sidecar   |
+ | Health checks and |
+ | service logging   |
+ +-------------------+
 ```
 
 ## Container Communication

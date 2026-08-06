@@ -1,0 +1,8 @@
+:80 {
+	# Round-robin across room-service replicas
+	reverse_proxy room-service-1:3001 room-service-2:3001 {
+		lb_policy round_robin
+		health_uri /health
+		health_interval 10s
+	}
+}

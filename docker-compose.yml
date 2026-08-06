@@ -1,8 +1,24 @@
 services:
-  room-service:
-    build: ./room-service
+  redis:
+    image: redis:7-alpine
     ports:
-      - "3001:3001"
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  room-service-1:
+    build: ./room-service
+    environment:
+      PORT: "3001"
+      REDIS_URL: redis://redis:6379
+      CACHE_MISS_DELAY_MS: "350"
+      CACHE_TTL_SECONDS: "60"
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -15,6 +31,41 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
+
+  room-service-2:
+    build: ./room-service
+    environment:
+      PORT: "3001"
+      REDIS_URL: redis://redis:6379
+      CACHE_MISS_DELAY_MS: "350"
+      CACHE_TTL_SECONDS: "60"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "3001:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      room-service-1:
+        condition: service_healthy
+      room-service-2:
+        condition: service_healthy
 
   reservation-service:
     build: ./reservation-service
@@ -36,8 +87,8 @@ services:
   health-sidecar:
     build: ./health-sidecar
     depends_on:
-      room-service:
+      room-service-1:
         condition: service_healthy
     environment:
-      ROOM_HEALTH_URL: http://room-service:3001/health
+      ROOM_HEALTH_URL: http://room-service-1:3001/health
       CHECK_INTERVAL_MS: "10000"
